@@ -1,65 +1,41 @@
-import Image from "next/image";
+import Layout from '@/components/Layout';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <Layout>
+      <div className="prose prose-lg max-w-none">
+        <h1 className="text-4xl font-bold mb-6">Welcome to NC Issues Documentation</h1>
+        <p className="text-lg text-gray-700 mb-4">
+          This documentation site contains comprehensive planning and design documents for the ncissues.com project.
+        </p>
+        <h2 className="text-2xl font-semibold mb-4">Project Overview</h2>
+        <p className="text-gray-700 mb-4">
+          NC Issues is a subscription-based platform designed to keep citizens and municipalities informed about 
+          legislative activities in North Carolina. The platform will:
+        </p>
+        <ul className="list-disc pl-6 mb-4 text-gray-700">
+          <li>Scrape daily news feeds and calendars from the NC Legislature website</li>
+          <li>Track bills and their stages in the legislative process</li>
+          <li>Provide a blog of activities for state and local news</li>
+          <li>Send email notifications to subscribers about relevant bills</li>
+          <li>Enable citizens to contact their representatives and senators</li>
+          <li>Use AI agents to create emails, blog posts, and social media content</li>
+        </ul>
+        <h2 className="text-2xl font-semibold mb-4">Documentation</h2>
+        <p className="text-gray-700 mb-4">
+          Use the sidebar to navigate through the various planning documents, including:
+        </p>
+        <ul className="list-disc pl-6 mb-4 text-gray-700">
+          <li><strong>Project Todo List</strong> - Current progress and remaining tasks</li>
+          <li><strong>Scraping Strategy</strong> - How we'll collect data from ncleg.gov</li>
+          <li><strong>Database Schema</strong> - Structure for storing bills and tracking changes</li>
+          <li><strong>Subscription System</strong> - User management and notification delivery</li>
+          <li><strong>AI Agent Functionalities</strong> - Automated content generation</li>
+          <li><strong>User Engagement Tools</strong> - Features for contacting legislators</li>
+          <li><strong>Responsive Design</strong> - Mobile-friendly interface guidelines</li>
+          <li><strong>System Architecture</strong> - Overall technical design and validation</li>
+        </ul>
+      </div>
+    </Layout>
   );
 }
