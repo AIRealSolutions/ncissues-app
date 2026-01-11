@@ -25,6 +25,9 @@ export default function Home() {
             <Link href="/find-legislator" className="text-foreground hover:text-primary transition-colors">
               Find Legislator
             </Link>
+            <Link href="/member-profile" className="text-foreground hover:text-primary transition-colors">
+              Member Profile
+            </Link>
             <Link
               href="/subscribe"
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
