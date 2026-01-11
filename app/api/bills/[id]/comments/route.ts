@@ -5,9 +5,10 @@ import { getCurrentUser } from '@/lib/auth';
 // GET - List comments for a bill
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const billId = parseInt(params.id);
+  const { id } = await params;
+  const billId = parseInt(id);
   const supabase = await createClient();
 
   try {
@@ -41,9 +42,10 @@ export async function GET(
 // POST - Create a new comment (member-only)
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const billId = parseInt(params.id);
+  const { id } = await params;
+  const billId = parseInt(id);
 
   try {
     const user = await getCurrentUser();
