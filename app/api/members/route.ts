@@ -42,8 +42,24 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'No members found matching that name' }, { status: 404 });
       }
       
-      // If multiple results, return the first one (or could return all for selection)
-      const memberData = members.map(({ password_hash, ...rest }) => rest);
+      // Check if accounts are claimed and filter sensitive data
+      const memberData = members.map(({ password_hash, ...rest }) => {
+        // If account is claimed (has password), only return limited info
+        if (rest.password_hash || rest.email) {
+          return {
+            id: rest.id,
+            voter_reg_num: rest.voter_reg_num,
+            ncid: rest.ncid,
+            full_name: rest.full_name,
+            res_city: rest.res_city,
+            res_zip_code: rest.res_zip_code,
+            nc_senate_dist: rest.nc_senate_dist,
+            nc_house_dist: rest.nc_house_dist,
+            account_claimed: true
+          };
+        }
+        return rest;
+      });
       
       if (members.length === 1) {
         return NextResponse.json(memberData[0]);
@@ -61,6 +77,22 @@ export async function GET(request: Request) {
       }
       console.error('Error fetching member:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Check if account is claimed
+    if (data.password_hash || data.email) {
+      // Account is claimed - return limited info
+      return NextResponse.json({
+        id: data.id,
+        voter_reg_num: data.voter_reg_num,
+        ncid: data.ncid,
+        full_name: data.full_name,
+        res_city: data.res_city,
+        res_zip_code: data.res_zip_code,
+        nc_senate_dist: data.nc_senate_dist,
+        nc_house_dist: data.nc_house_dist,
+        account_claimed: true
+      });
     }
 
     // Don't return password hash
@@ -90,7 +122,7 @@ export async function POST(request: Request) {
     }
 
     // Find the member
-    let query = supabase.from('members').select('id');
+    let query = supabase.from('members').select('*');
     if (voter_reg_num) {
       query = query.eq('voter_reg_num', voter_reg_num);
     } else {

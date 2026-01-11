@@ -7,21 +7,22 @@ interface Member {
   id: number;
   voter_reg_num: string;
   ncid: string;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   full_name: string;
-  party_cd: string;
-  res_street_address: string;
+  party_cd?: string;
+  res_street_address?: string;
   res_city: string;
   res_zip_code: string;
-  phone: string;
-  email: string;
+  phone?: string;
+  email?: string;
   nc_senate_dist: string;
   nc_house_dist: string;
+  account_claimed?: boolean;
 }
 
 export default function MemberProfilePage() {
-  const [step, setStep] = useState<'lookup' | 'select' | 'profile' | 'update'>('lookup');
+  const [step, setStep] = useState<'lookup' | 'select' | 'claimed' | 'profile' | 'update'>('lookup');
   const [lookupMethod, setLookupMethod] = useState<'voter_reg' | 'ncid' | 'name'>('voter_reg');
   const [lookupValue, setLookupValue] = useState('');
   const [member, setMember] = useState<Member | null>(null);
@@ -59,8 +60,12 @@ export default function MemberProfilePage() {
         if (data.multiple && data.members) {
           setMembers(data.members);
           setStep('select');
+        } else if (data.account_claimed) {
+          // Account is already claimed
+          setMember(data);
+          setStep('claimed');
         } else {
-          // Single result
+          // Single result, unclaimed account
           setMember(data);
           setEmail(data.email || '');
           setPhone(data.phone || '');
@@ -77,10 +82,15 @@ export default function MemberProfilePage() {
   };
 
   const handleSelectMember = (selectedMember: Member) => {
-    setMember(selectedMember);
-    setEmail(selectedMember.email || '');
-    setPhone(selectedMember.phone || '');
-    setStep('profile');
+    if (selectedMember.account_claimed) {
+      setMember(selectedMember);
+      setStep('claimed');
+    } else {
+      setMember(selectedMember);
+      setEmail(selectedMember.email || '');
+      setPhone(selectedMember.phone || '');
+      setStep('profile');
+    }
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -92,6 +102,13 @@ export default function MemberProfilePage() {
     // Validate password match
     if (password && password !== confirmPassword) {
       setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    // Require email and password for first-time setup
+    if (!member?.email && (!email || !password)) {
+      setError('Email and password are required to set up your account');
       setLoading(false);
       return;
     }
@@ -122,11 +139,14 @@ export default function MemberProfilePage() {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess('Profile updated successfully!');
+        setSuccess('Profile updated successfully! Your account is now secured.');
         setMember(data.member);
         setPassword('');
         setConfirmPassword('');
-        setTimeout(() => setStep('profile'), 2000);
+        setTimeout(() => {
+          // Redirect to login page after account setup
+          window.location.href = '/member-login';
+        }, 2000);
       } else {
         setError(data.error || 'Error updating profile');
       }
@@ -156,6 +176,9 @@ export default function MemberProfilePage() {
               <Link href="/subscribe" className="text-gray-700 hover:text-blue-900">
                 Subscribe
               </Link>
+              <Link href="/member-login" className="text-gray-700 hover:text-blue-900">
+                Member Login
+              </Link>
             </nav>
           </div>
         </div>
@@ -164,9 +187,9 @@ export default function MemberProfilePage() {
       {/* Hero */}
       <div className="bg-gradient-to-r from-blue-900 to-blue-700 text-white py-16">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Member Profile</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Member Profile Setup</h1>
           <p className="text-xl text-blue-100 max-w-2xl">
-            Update your contact information and manage your account
+            Set up your account to receive legislative updates and manage your preferences
           </p>
         </div>
       </div>
@@ -176,7 +199,7 @@ export default function MemberProfilePage() {
           {/* Lookup Step */}
           {step === 'lookup' && (
             <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Find Your Profile</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Find Your Voter Record</h2>
 
               <form onSubmit={handleLookup} className="space-y-6">
                 <div>
@@ -221,6 +244,13 @@ export default function MemberProfilePage() {
                 >
                   {loading ? 'Looking up...' : 'Find Profile'}
                 </button>
+
+                <div className="text-center text-sm text-gray-600">
+                  Already have an account?{' '}
+                  <Link href="/member-login" className="text-blue-900 hover:underline">
+                    Login here
+                  </Link>
+                </div>
               </form>
             </div>
           )}
@@ -242,12 +272,21 @@ export default function MemberProfilePage() {
                     onClick={() => handleSelectMember(m)}
                     className="w-full text-left p-4 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
                   >
-                    <div className="font-medium text-gray-900 mb-1">{m.full_name}</div>
-                    <div className="text-sm text-gray-600">
-                      {m.res_street_address}, {m.res_city}, NC {m.res_zip_code}
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Party: {m.party_cd} | Senate District: {m.nc_senate_dist} | House District: {m.nc_house_dist}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 mb-1">{m.full_name}</div>
+                        <div className="text-sm text-gray-600">
+                          {m.res_city}, NC {m.res_zip_code}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          Senate District: {m.nc_senate_dist} | House District: {m.nc_house_dist}
+                        </div>
+                      </div>
+                      {m.account_claimed && (
+                        <span className="ml-4 px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                          Account Claimed
+                        </span>
+                      )}
                     </div>
                   </button>
                 ))}
@@ -266,13 +305,75 @@ export default function MemberProfilePage() {
             </div>
           )}
 
+          {/* Account Claimed Step */}
+          {step === 'claimed' && member && (
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
+                  <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Already Claimed</h2>
+                <p className="text-gray-600">
+                  This voter record has already been registered and secured.
+                </p>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <h3 className="font-medium text-gray-900 mb-2">Account Information</h3>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="text-gray-600">Name:</span>{' '}
+                    <span className="font-medium text-gray-900">{member.full_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Location:</span>{' '}
+                    <span className="font-medium text-gray-900">{member.res_city}, NC {member.res_zip_code}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Districts:</span>{' '}
+                    <span className="font-medium text-gray-900">
+                      Senate {member.nc_senate_dist}, House {member.nc_house_dist}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Link
+                  href="/member-login"
+                  className="block w-full bg-blue-900 text-white text-center py-3 px-6 rounded-lg font-medium hover:bg-blue-800 transition-colors"
+                >
+                  Login to Your Account
+                </Link>
+                <Link
+                  href="/password-reset"
+                  className="block w-full border border-gray-300 text-gray-700 text-center py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Reset Password
+                </Link>
+                <button
+                  onClick={() => {
+                    setStep('lookup');
+                    setMember(null);
+                    setLookupValue('');
+                  }}
+                  className="w-full text-gray-600 text-sm hover:text-gray-900"
+                >
+                  ← Back to Search
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Profile View Step */}
-          {step === 'profile' && member && (
+          {step === 'profile' && member && !member.account_claimed && (
             <div className="space-y-6">
               <div className="bg-white rounded-lg shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Profile</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Voter Record</h2>
 
-                <div className="space-y-4">
+                <div className="space-y-4 mb-6">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-500">Name</p>
@@ -302,37 +403,20 @@ export default function MemberProfilePage() {
                       <p className="font-medium text-gray-900">{member.nc_house_dist}</p>
                     </div>
                   </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Email</p>
-                      <p className="font-medium text-gray-900">{member.email || 'Not set'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Phone</p>
-                      <p className="font-medium text-gray-900">{member.phone || 'Not set'}</p>
-                    </div>
-                  </div>
                 </div>
 
-                <div className="mt-6 flex gap-3">
-                  <button
-                    onClick={() => setStep('update')}
-                    className="flex-1 bg-blue-900 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-800 transition-colors"
-                  >
-                    Update Information
-                  </button>
-                  <button
-                    onClick={() => {
-                      setStep('lookup');
-                      setMember(null);
-                      setLookupValue('');
-                    }}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Logout
-                  </button>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Secure your account:</strong> Add your email and password below to claim this voter record and access member features.
+                  </p>
                 </div>
+
+                <button
+                  onClick={() => setStep('update')}
+                  className="w-full bg-blue-900 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-800 transition-colors"
+                >
+                  Set Up Account
+                </button>
               </div>
             </div>
           )}
@@ -340,25 +424,29 @@ export default function MemberProfilePage() {
           {/* Update Step */}
           {step === 'update' && member && (
             <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Update Contact Information</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Set Up Your Account</h2>
 
               <form onSubmit={handleUpdate} className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
+                    Email Address *
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your.email@example.com"
+                    required
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    We'll use this email to send you legislative updates
+                  </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
+                    Phone Number (optional)
                   </label>
                   <input
                     type="tel"
@@ -371,26 +459,28 @@ export default function MemberProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    New Password (optional)
+                    Password *
                   </label>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Leave blank to keep current password"
+                    placeholder="Create a secure password"
+                    required
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Confirm New Password
+                    Confirm Password *
                   </label>
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your new password"
+                    placeholder="Confirm your password"
+                    required
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -413,7 +503,7 @@ export default function MemberProfilePage() {
                     disabled={loading}
                     className="flex-1 bg-blue-900 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-800 transition-colors disabled:opacity-50"
                   >
-                    {loading ? 'Updating...' : 'Save Changes'}
+                    {loading ? 'Setting up...' : 'Create Account'}
                   </button>
                   <button
                     type="button"
