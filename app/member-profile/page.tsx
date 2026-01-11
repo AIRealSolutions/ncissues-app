@@ -21,10 +21,11 @@ interface Member {
 }
 
 export default function MemberProfilePage() {
-  const [step, setStep] = useState<'lookup' | 'profile' | 'update'>('lookup');
+  const [step, setStep] = useState<'lookup' | 'select' | 'profile' | 'update'>('lookup');
   const [lookupMethod, setLookupMethod] = useState<'voter_reg' | 'ncid' | 'name'>('voter_reg');
   const [lookupValue, setLookupValue] = useState('');
   const [member, setMember] = useState<Member | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -54,10 +55,17 @@ export default function MemberProfilePage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMember(data);
-        setEmail(data.email || '');
-        setPhone(data.phone || '');
-        setStep('profile');
+        // Check if multiple results were returned
+        if (data.multiple && data.members) {
+          setMembers(data.members);
+          setStep('select');
+        } else {
+          // Single result
+          setMember(data);
+          setEmail(data.email || '');
+          setPhone(data.phone || '');
+          setStep('profile');
+        }
       } else {
         setError(data.error || 'Member not found');
       }
@@ -66,6 +74,13 @@ export default function MemberProfilePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectMember = (selectedMember: Member) => {
+    setMember(selectedMember);
+    setEmail(selectedMember.email || '');
+    setPhone(selectedMember.phone || '');
+    setStep('profile');
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -210,6 +225,47 @@ export default function MemberProfilePage() {
             </div>
           )}
 
+          {/* Select Member Step (when multiple results) */}
+          {step === 'select' && members.length > 0 && (
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Multiple Members Found ({members.length})
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Please select your profile from the list below:
+              </p>
+
+              <div className="space-y-4">
+                {members.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => handleSelectMember(m)}
+                    className="w-full text-left p-4 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                  >
+                    <div className="font-medium text-gray-900 mb-1">{m.full_name}</div>
+                    <div className="text-sm text-gray-600">
+                      {m.res_street_address}, {m.res_city}, NC {m.res_zip_code}
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      Party: {m.party_cd} | Senate District: {m.nc_senate_dist} | House District: {m.nc_house_dist}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => {
+                  setStep('lookup');
+                  setMembers([]);
+                  setLookupValue('');
+                }}
+                className="mt-6 w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Back to Search
+              </button>
+            </div>
+          )}
+
           {/* Profile View Step */}
           {step === 'profile' && member && (
             <div className="space-y-6">
@@ -326,20 +382,18 @@ export default function MemberProfilePage() {
                   />
                 </div>
 
-                {password && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirm Password
-                    </label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Re-enter your password"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your new password"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
