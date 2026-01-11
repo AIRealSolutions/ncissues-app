@@ -1,36 +1,118 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NC Issues - North Carolina Legislative Tracking
 
-## Getting Started
+A Next.js application for tracking North Carolina legislation with Supabase backend, designed for Vercel deployment.
 
-First, run the development server:
+## Features
+
+- **Bill Tracking**: Browse and search NC House and Senate bills
+- **Smart Subscriptions**: Subscribe to topics and municipalities for personalized notifications
+- **Blog Platform**: Legislative analysis and updates
+- **Contact Representatives**: Send messages to legislators about bills
+- **Supabase Auth**: Secure authentication with OAuth providers
+- **Responsive Design**: Mobile-first UI with Tailwind CSS
+
+## Tech Stack
+
+- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS 4
+- **Backend**: Supabase (PostgreSQL database + Auth)
+- **Deployment**: Vercel
+- **Styling**: Tailwind CSS with custom NC-themed design system
+
+## Database Schema
+
+The Supabase database includes:
+- `profiles` - User profiles extending Supabase auth
+- `bills` - Legislative bills with full tracking
+- `bill_history` - Bill action timeline
+- `legislators` - NC House and Senate members
+- `subscriptions` - User notification preferences
+- `notifications` - Notification queue and history
+- `blog_posts` - Content management
+- `contact_messages` - Legislator communications
+- `calendar_events` - Legislative calendar
+- `scraping_logs` - Data collection tracking
+
+## Setup Instructions
+
+### 1. Clone the Repository
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/AIRealSolutions/ncissues-app.git
+cd ncissues-app
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Install Dependencies
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Configure Environment Variables
 
-## Learn More
+Create a `.env.local` file:
 
-To learn more about Next.js, take a look at the following resources:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://bmwzjybppjneyejlsjpv.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Run Development Server
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm dev
+```
 
-## Deploy on Vercel
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment to Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Via Vercel Dashboard
+
+1. Push code to GitHub repository: `AIRealSolutions/ncissues-app`
+2. Go to [vercel.com](https://vercel.com) and sign in
+3. Click "New Project"
+4. Import the GitHub repository
+5. Configure environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`: `https://bmwzjybppjneyejlsjpv.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: (from Supabase dashboard)
+6. Click "Deploy"
+
+## Supabase Configuration
+
+**Project ID**: `bmwzjybppjneyejlsjpv`
+**Region**: us-east-2
+**Database**: PostgreSQL 17
+
+### Enable Authentication
+
+1. Go to Supabase dashboard → Authentication → Providers
+2. Enable OAuth providers (Google, GitHub, etc.)
+3. Configure redirect URLs:
+   - Development: `http://localhost:3000/auth/callback`
+   - Production: `https://your-domain.vercel.app/auth/callback`
+
+## Project Structure
+
+```
+ncissues-nextjs/
+├── app/
+│   ├── api/              # API routes
+│   │   ├── bills/        # Bills endpoints
+│   │   ├── subscriptions/# Subscription endpoints
+│   │   ├── blog/         # Blog endpoints
+│   │   └── contact/      # Contact endpoints
+│   ├── bills/            # Bills pages
+│   ├── subscribe/        # Subscription page
+│   ├── layout.tsx        # Root layout
+│   ├── page.tsx          # Home page
+│   └── globals.css       # Global styles
+├── lib/
+│   └── supabase/         # Supabase client utilities
+├── types/
+│   └── database.ts       # TypeScript types
+└── middleware.ts         # Auth middleware
+```
+
+## License
+
+MIT License

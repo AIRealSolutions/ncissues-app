@@ -3,25 +3,34 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-primary: oklch(0.45 0.15 264);
+  --color-primary-foreground: oklch(1 0 0);
+  --color-secondary: oklch(0.60 0.18 264);
+  --color-secondary-foreground: oklch(1 0 0);
+  --color-accent: oklch(0.70 0.15 264);
+  --color-accent-foreground: oklch(0.30 0.15 264);
+  --color-muted: oklch(0.96 0.01 264);
+  --color-muted-foreground: oklch(0.50 0.05 264);
+  --color-border: oklch(0.90 0.02 264);
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.15 0.05 264);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-merriweather);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif), serif;
+  font-weight: 700;
 }
