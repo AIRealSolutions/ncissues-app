@@ -16,11 +16,29 @@ interface Member {
   res_zip_code: string;
   nc_senate_dist: string;
   nc_house_dist: string;
+  role?: string;
+}
+
+interface TrackedBill {
+  id: number;
+  tracked_at: string;
+  notes?: string;
+  bills: {
+    id: number;
+    bill_number: string;
+    title: string;
+    short_title?: string;
+    status: string;
+    chamber: string;
+    last_action?: string;
+    last_action_date?: string;
+  };
 }
 
 export default function MemberDashboardPage() {
   const router = useRouter();
   const [member, setMember] = useState<Member | null>(null);
+  const [trackedBills, setTrackedBills] = useState<TrackedBill[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +52,7 @@ export default function MemberDashboardPage() {
 
       if (response.ok && data.type === 'member') {
         setMember(data);
+        fetchTrackedBills();
       } else {
         // Not authenticated or not a member, redirect to login
         router.push('/member-login');
@@ -43,6 +62,35 @@ export default function MemberDashboardPage() {
       router.push('/member-login');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTrackedBills = async () => {
+    try {
+      const response = await fetch('/api/tracked-bills');
+      if (response.ok) {
+        const data = await response.json();
+        setTrackedBills(data.tracked_bills || []);
+      }
+    } catch (error) {
+      console.error('Error fetching tracked bills:', error);
+    }
+  };
+
+  const handleUntrackBill = async (billId: number) => {
+    try {
+      const response = await fetch(`/api/tracked-bills?bill_id=${billId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setTrackedBills(trackedBills.filter(tb => tb.bills.id !== billId));
+      } else {
+        alert('Error untracking bill');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error untracking bill');
     }
   };
 
@@ -89,6 +137,9 @@ export default function MemberDashboardPage() {
               <Link href="/subscribe" className="text-gray-700 hover:text-blue-900">
                 Subscribe
               </Link>
+              <Link href="/member-settings" className="text-gray-700 hover:text-blue-900">
+                Settings
+              </Link>
               <button
                 onClick={handleLogout}
                 className="text-gray-700 hover:text-blue-900"
@@ -109,6 +160,11 @@ export default function MemberDashboardPage() {
           <p className="text-xl text-blue-100 max-w-2xl">
             Your personalized legislative tracking dashboard
           </p>
+          {member.role === 'admin' && (
+            <div className="mt-4 inline-block px-4 py-2 bg-yellow-500 text-yellow-900 rounded-lg font-medium">
+              Admin Access
+            </div>
+          )}
         </div>
       </div>
 
@@ -137,8 +193,10 @@ export default function MemberDashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p className="text-3xl font-bold text-gray-900">0</p>
-            <p className="text-sm text-gray-600 mt-2">No bills tracked yet</p>
+            <p className="text-3xl font-bold text-gray-900">{trackedBills.length}</p>
+            <p className="text-sm text-gray-600 mt-2">
+              {trackedBills.length === 0 ? 'No bills tracked yet' : 'Bills you\'re following'}
+            </p>
           </div>
 
           <div className="bg-white rounded-lg shadow-lg p-6">
@@ -217,59 +275,107 @@ export default function MemberDashboardPage() {
             </div>
           </div>
 
-          {/* Right Column - Activity Feed */}
+          {/* Right Column - Tracked Bills */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h3>
-              
-              {/* Empty State */}
-              <div className="text-center py-12">
-                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h4 className="text-lg font-medium text-gray-900 mb-2">No Activity Yet</h4>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Start tracking bills and setting up notifications to see your legislative activity here.
-                </p>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Your Tracked Bills</h3>
                 <Link
                   href="/bills"
-                  className="inline-block bg-blue-900 text-white py-2 px-6 rounded-lg hover:bg-blue-800 transition-colors"
+                  className="text-sm text-blue-900 hover:underline"
                 >
-                  Browse Bills
+                  Browse All Bills →
                 </Link>
               </div>
+              
+              {trackedBills.length > 0 ? (
+                <div className="space-y-4">
+                  {trackedBills.map((tracked) => (
+                    <div key={tracked.id} className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <Link
+                            href={`/bills/${tracked.bills.id}`}
+                            className="font-medium text-gray-900 hover:text-blue-900"
+                          >
+                            {tracked.bills.bill_number}: {tracked.bills.title}
+                          </Link>
+                          <div className="flex gap-2 mt-2 text-sm">
+                            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                              {tracked.bills.chamber === 'house' ? 'House' : 'Senate'}
+                            </span>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                              {tracked.bills.status}
+                            </span>
+                          </div>
+                          {tracked.bills.last_action && (
+                            <p className="mt-2 text-sm text-gray-600">
+                              Last Action: {tracked.bills.last_action}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleUntrackBill(tracked.bills.id)}
+                          className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+                        >
+                          Untrack
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Empty State */
+                <div className="text-center py-12">
+                  <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">No Tracked Bills Yet</h4>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    Start tracking bills to see updates and activity here. Browse bills and click "Track" to follow legislation that matters to you.
+                  </p>
+                  <Link
+                    href="/bills"
+                    className="inline-block bg-blue-900 text-white py-2 px-6 rounded-lg hover:bg-blue-800 transition-colors"
+                  >
+                    Browse Bills
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* Getting Started */}
-            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <h4 className="font-medium text-gray-900 mb-3">Getting Started</h4>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Browse the bills page to find legislation that interests you</span>
-                </li>
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Click "Track" on bills you want to follow for updates</span>
-                </li>
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Set up email notifications to get updates on bill activity</span>
-                </li>
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Use "Find Your Legislator" to contact your representatives</span>
-                </li>
-              </ul>
-            </div>
+            {trackedBills.length === 0 && (
+              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h4 className="font-medium text-gray-900 mb-3">Getting Started</h4>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start">
+                    <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Browse the bills page to find legislation that interests you</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Click "Track" on bills you want to follow for updates</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Set up email notifications to get updates on bill activity</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Use "Find Your Legislator" to contact your representatives</span>
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>

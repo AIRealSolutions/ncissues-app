@@ -30,3 +30,13 @@
 - [ ] Social media integration
 - [ ] Blog system
 - [ ] Admin back office improvements
+
+## Current Sprint
+- [x] Add admin role to members table
+- [x] Create tracked_bills table
+- [x] Build member settings page for profile editing
+- [x] Implement bill tracking system (API)
+- [x] Add track/untrack buttons to bills page
+- [x] Update dashboard to show tracked bills
+- [ ] Test all new features
+- [ ] Deploy to production
