@@ -40,3 +40,16 @@
 - [x] Update dashboard to show tracked bills
 - [ ] Test all new features
 - [ ] Deploy to production
+
+## Bill Detail Pages Sprint
+- [x] Create bill detail API endpoint
+- [x] Build bill detail page layout
+- [x] Add bill overview section
+- [x] Display bill text/summary
+- [x] Show bill history timeline
+- [x] Display votes and results
+- [x] Show sponsors and co-sponsors
+- [x] Add track/untrack button
+- [x] Integrate existing discussion/comments
+- [ ] Test bill detail pages
+- [ ] Deploy to production
