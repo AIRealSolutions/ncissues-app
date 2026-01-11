@@ -22,7 +22,7 @@ interface Member {
 
 export default function MemberProfilePage() {
   const [step, setStep] = useState<'lookup' | 'profile' | 'update'>('lookup');
-  const [lookupMethod, setLookupMethod] = useState<'voter_reg' | 'ncid'>('voter_reg');
+  const [lookupMethod, setLookupMethod] = useState<'voter_reg' | 'ncid' | 'name'>('voter_reg');
   const [lookupValue, setLookupValue] = useState('');
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,8 +44,10 @@ export default function MemberProfilePage() {
       const params = new URLSearchParams();
       if (lookupMethod === 'voter_reg') {
         params.append('voter_reg_num', lookupValue);
-      } else {
+      } else if (lookupMethod === 'ncid') {
         params.append('ncid', lookupValue);
+      } else if (lookupMethod === 'name') {
+        params.append('name', lookupValue);
       }
 
       const response = await fetch(`/api/members?${params.toString()}`);
@@ -168,23 +170,24 @@ export default function MemberProfilePage() {
                   </label>
                   <select
                     value={lookupMethod}
-                    onChange={(e) => setLookupMethod(e.target.value as 'voter_reg' | 'ncid')}
+                    onChange={(e) => setLookupMethod(e.target.value as 'voter_reg' | 'ncid' | 'name')}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="voter_reg">Voter Registration Number</option>
                     <option value="ncid">NC ID</option>
+                    <option value="name">Name</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {lookupMethod === 'voter_reg' ? 'Voter Registration Number' : 'NC ID'}
+                    {lookupMethod === 'voter_reg' ? 'Voter Registration Number' : lookupMethod === 'ncid' ? 'NC ID' : 'Full Name'}
                   </label>
                   <input
                     type="text"
                     value={lookupValue}
                     onChange={(e) => setLookupValue(e.target.value)}
-                    placeholder={lookupMethod === 'voter_reg' ? 'e.g., 000600138588' : 'e.g., AK185777'}
+                    placeholder={lookupMethod === 'voter_reg' ? 'e.g., 000600138588' : lookupMethod === 'ncid' ? 'e.g., AK185777' : 'e.g., John Smith'}
                     required
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />

@@ -2,16 +2,17 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 
-// GET - Find member by voter registration number or NCID
+// GET - Find member by voter registration number, NCID, email, or name
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const voterRegNum = searchParams.get('voter_reg_num');
   const ncid = searchParams.get('ncid');
   const email = searchParams.get('email');
+  const name = searchParams.get('name');
 
-  if (!voterRegNum && !ncid && !email) {
+  if (!voterRegNum && !ncid && !email && !name) {
     return NextResponse.json(
-      { error: 'voter_reg_num, ncid, or email is required' },
+      { error: 'voter_reg_num, ncid, email, or name is required' },
       { status: 400 }
     );
   }
@@ -27,6 +28,29 @@ export async function GET(request: Request) {
       query = query.eq('ncid', ncid);
     } else if (email) {
       query = query.eq('email', email);
+    } else if (name) {
+      // Search by name - return multiple results if multiple matches
+      query = query.ilike('full_name', `%${name}%`);
+      const { data: members, error } = await query;
+      
+      if (error) {
+        console.error('Error searching members:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      
+      if (!members || members.length === 0) {
+        return NextResponse.json({ error: 'No members found matching that name' }, { status: 404 });
+      }
+      
+      // If multiple results, return the first one (or could return all for selection)
+      const memberData = members.map(({ password_hash, ...rest }) => rest);
+      
+      if (members.length === 1) {
+        return NextResponse.json(memberData[0]);
+      } else {
+        // Return multiple results for user to choose
+        return NextResponse.json({ multiple: true, members: memberData });
+      }
     }
 
     const { data, error } = await query.single();
