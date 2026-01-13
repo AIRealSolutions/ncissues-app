@@ -96,3 +96,29 @@
 - [ ] Gate paid features in existing pages
 - [ ] Test all user tiers
 - [ ] Deploy to production
+
+## Organization Accounts & Platform Enhancements
+- [ ] Create organizations database table
+- [ ] Add organization types (nonprofit, PAC, advocacy, community)
+- [ ] Build organization registration flow
+- [ ] Create organization profile pages
+- [ ] Add organization positions on bills/issues
+- [ ] Allow members to follow organizations
+- [ ] Integrate Stripe payment processing
+- [ ] Add subscription checkout flow
+- [ ] Gate bill tracking feature
+- [ ] Gate commenting feature
+- [ ] Gate issue submission feature
+- [ ] Gate dashboard access
+- [ ] Build subscription management page
+- [ ] Add upgrade/downgrade functionality
+- [ ] Add cancellation flow
+- [ ] Create admin dashboard
+- [ ] Add user management interface
+- [ ] Add subscription management for admins
+- [ ] Add content moderation tools
+- [ ] Add tier badges to user profiles
+- [ ] Add organization badges
+- [ ] Show tier in navigation
+- [ ] Test all features
+- [ ] Deploy to production
