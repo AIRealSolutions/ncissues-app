@@ -66,3 +66,11 @@
 - [x] Create viral mechanics (share buttons, preview cards)
 - [ ] Test issues platform
 - [ ] Deploy to production
+
+## Open Graph Meta Tags Sprint
+- [x] Add Open Graph meta tags to issue detail pages
+- [x] Add Twitter Card meta tags
+- [x] Create dynamic OG image generation API
+- [x] Add meta tags to issues listing page
+- [ ] Test social media previews
+- [ ] Deploy to production
