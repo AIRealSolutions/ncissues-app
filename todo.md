@@ -82,3 +82,17 @@
 - [x] Enhance share functionality with comment URLs
 - [ ] Test comment sharing on social media
 - [ ] Deploy to production
+
+## Multi-Tier User System Sprint
+- [x] Update database schema for user tiers
+- [x] Add subscription tracking fields
+- [x] Create public user registration (name + phone)
+- [x] Build pricing page with tier comparison
+- [x] Implement access control utilities
+- [x] Create upgrade prompt components
+- [x] Update homepage with login button
+- [x] Add tier comparison and pricing page
+- [x] Reorganize features into free vs paid
+- [ ] Gate paid features in existing pages
+- [ ] Test all user tiers
+- [ ] Deploy to production

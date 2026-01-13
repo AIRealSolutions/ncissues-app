@@ -16,23 +16,26 @@ export default function Home() {
             <Link href="/bills" className="text-foreground hover:text-primary transition-colors">
               Bills
             </Link>
-            <Link href="/blog" className="text-foreground hover:text-primary transition-colors">
-              Blog
-            </Link>
-            <Link href="/contact" className="text-foreground hover:text-primary transition-colors">
-              Contact
+            <Link href="/issues" className="text-foreground hover:text-primary transition-colors">
+              Issues
             </Link>
             <Link href="/find-legislator" className="text-foreground hover:text-primary transition-colors">
               Find Legislator
             </Link>
-            <Link href="/member-profile" className="text-foreground hover:text-primary transition-colors">
-              Member Profile
+            <Link href="/pricing" className="text-foreground hover:text-primary transition-colors">
+              Pricing
             </Link>
             <Link
-              href="/subscribe"
+              href="/member-login"
+              className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+            >
+              Login
+            </Link>
+            <Link
+              href="/register"
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
-              Subscribe
+              Sign Up Free
             </Link>
           </div>
         </div>
@@ -50,10 +53,16 @@ export default function Home() {
           </p>
           <div className="flex gap-4 justify-center">
             <Link
-              href="/subscribe"
+              href="/register"
               className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-lg font-semibold"
             >
-              Get Notifications
+              Start Free
+            </Link>
+            <Link
+              href="/member-profile"
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold"
+            >
+              Claim Your Voter Record
             </Link>
             <Link
               href="/bills"
@@ -62,6 +71,9 @@ export default function Home() {
               Browse Bills
             </Link>
           </div>
+          <p className="mt-6 text-muted-foreground">
+            <Link href="/pricing" className="underline hover:text-primary">Upgrade to Member</Link> for bill tracking, notifications, and more
+          </p>
         </div>
       </section>
 
