@@ -53,3 +53,16 @@
 - [x] Integrate existing discussion/comments
 - [ ] Test bill detail pages
 - [ ] Deploy to production
+
+## Issues Platform Sprint
+- [x] Rename blog to issues throughout site
+- [x] Create issues database table
+- [x] Add contributor role to members
+- [x] Build issue submission form for contributors
+- [x] Create issues listing page
+- [x] Build issue detail page with comments
+- [x] Implement social sharing for comments
+- [x] Add share-to-image feature for comments
+- [x] Create viral mechanics (share buttons, preview cards)
+- [ ] Test issues platform
+- [ ] Deploy to production
