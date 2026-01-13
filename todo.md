@@ -74,3 +74,11 @@
 - [x] Add meta tags to issues listing page
 - [ ] Test social media previews
 - [ ] Deploy to production
+
+## Comment-Specific OG Tags Sprint
+- [x] Create comment OG image generation API
+- [x] Update metadata to detect comment ID from URL
+- [x] Generate comment-specific meta tags
+- [x] Enhance share functionality with comment URLs
+- [ ] Test comment sharing on social media
+- [ ] Deploy to production

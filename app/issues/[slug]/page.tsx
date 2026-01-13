@@ -149,7 +149,7 @@ export default function IssueDetailPage() {
   };
 
   const handleShareComment = async (commentId: number, commentText: string) => {
-    const shareUrl = `${window.location.origin}/issues/${slug}#comment-${commentId}`;
+    const shareUrl = `${window.location.origin}/issues/${slug}?comment_id=${commentId}#comment-${commentId}`;
     const shareText = `"${commentText.substring(0, 100)}${commentText.length > 100 ? '...' : ''}" - ${issue?.title}`;
 
     if (navigator.share) {
