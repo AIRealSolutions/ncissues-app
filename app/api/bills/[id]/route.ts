@@ -63,7 +63,7 @@ export async function GET(
 
     // Get individual vote records if available
     const voteIds = votes?.map(v => v.id) || [];
-    let voteRecords = [];
+    let voteRecords: any[] = [];
     
     if (voteIds.length > 0) {
       const { data: records } = await supabase
