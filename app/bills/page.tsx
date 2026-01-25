@@ -9,14 +9,25 @@ export default function BillsPage() {
   const [loading, setLoading] = useState(true);
   const [chamber, setChamber] = useState('');
   const [topic, setTopic] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const ITEMS_PER_PAGE = 20;
   const [user, setUser] = useState<any>(null);
   const [trackedBillIds, setTrackedBillIds] = useState<Set<number>>(new Set());
   const [trackingLoading, setTrackingLoading] = useState<number | null>(null);
 
   useEffect(() => {
     checkAuth();
-    fetchBills();
+    setPage(1);
+    setBills([]);
+    fetchBills(1, true);
   }, [chamber, topic]);
+
+  useEffect(() => {
+    if (page > 1) {
+      fetchBills(page, false);
+    }
+  }, [page]);
 
   const checkAuth = async () => {
     try {
@@ -46,16 +57,30 @@ export default function BillsPage() {
     }
   };
 
-  const fetchBills = async () => {
+  const fetchBills = async (pageNum: number, isNewSearch: boolean) => {
     setLoading(true);
     const params = new URLSearchParams();
     if (chamber) params.append('chamber', chamber);
     if (topic) params.append('topic', topic);
+    params.append('limit', ITEMS_PER_PAGE.toString());
+    params.append('offset', ((pageNum - 1) * ITEMS_PER_PAGE).toString());
     
-    const response = await fetch(`/api/bills?${params}`);
-    const data = await response.json();
-    setBills(data);
-    setLoading(false);
+    try {
+      const response = await fetch(`/api/bills?${params}`);
+      const data = await response.json();
+      
+      if (isNewSearch) {
+        setBills(data);
+      } else {
+        setBills(prev => [...prev, ...data]);
+      }
+      
+      setHasMore(data.length === ITEMS_PER_PAGE);
+    } catch (error) {
+      console.error('Error fetching bills:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleTrackBill = async (billId: number) => {
@@ -275,6 +300,17 @@ export default function BillsPage() {
           ) : (
             <div className="text-center py-12">
               <p className="text-lg text-muted-foreground">No bills found matching your criteria.</p>
+            </div>
+          )}
+
+          {hasMore && !loading && bills.length > 0 && (
+            <div className="mt-12 text-center">
+              <button
+                onClick={() => setPage(prev => prev + 1)}
+                className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+              >
+                Load More Bills
+              </button>
             </div>
           )}
         </div>
