@@ -49,7 +49,7 @@ export default function BillsPage() {
       const response = await fetch('/api/tracked-bills');
       if (response.ok) {
         const data = await response.json();
-        const ids = new Set(data.tracked_bills.map((tb: any) => tb.bills.id));
+        const ids = new Set<number>(data.tracked_bills.map((tb: any) => tb.bills.id));
         setTrackedBillIds(ids);
       }
     } catch (error) {
