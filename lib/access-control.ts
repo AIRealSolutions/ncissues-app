@@ -107,7 +107,7 @@ export function needsUpgrade(user: User | null, feature: keyof typeof FEATURE_AC
   const allowedTiers = FEATURE_ACCESS[feature];
   const lowestTier = allowedTiers[0] as UserTier;
   
-  const messages = {
+  const messages: Record<string, string> = {
     member: 'This feature requires a Member subscription. Upgrade to track bills, get notifications, and engage with the community.',
     contributor: 'This feature requires a Contributor subscription. Upgrade to submit issues and access advanced features.',
     admin: 'This feature is only available to administrators.',
