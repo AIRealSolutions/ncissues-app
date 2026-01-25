@@ -98,7 +98,7 @@ export async function generateMetadata({
       `)
       .eq('issue_id', issue.id);
 
-    const tags = tagRelations?.map(tr => tr.issue_tags.name).join(', ') || '';
+    const tags = tagRelations?.map((tr: any) => tr.issue_tags.name).join(', ') || '';
     const ogImageUrl = `${baseUrl}/api/og/issue?title=${encodeURIComponent(issue.title)}&author=${encodeURIComponent(issue.members.full_name)}&excerpt=${encodeURIComponent(issue.excerpt || '')}&tags=${encodeURIComponent(tags)}`;
 
     return {
