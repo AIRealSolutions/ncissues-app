@@ -9,19 +9,10 @@ export async function GET(
     const { id } = await params;
     const supabase = await createClient();
 
-    // Get bill with primary sponsor
+    // Get bill first without relations to ensure it exists
     const { data: bill, error: billError } = await supabase
       .from('bills')
-      .select(`
-        *,
-        legislators!bills_primary_sponsor_id_fkey (
-          id,
-          full_name,
-          party,
-          district,
-          chamber
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -30,6 +21,17 @@ export async function GET(
         { error: 'Bill not found' },
         { status: 404 }
       );
+    }
+
+    // Try to get primary sponsor separately
+    let primarySponsor = null;
+    if (bill.primary_sponsor_id) {
+      const { data: sponsor } = await supabase
+        .from('legislators')
+        .select('id, full_name, party, district, chamber')
+        .eq('id', bill.primary_sponsor_id)
+        .single();
+      primarySponsor = sponsor;
     }
 
     // Get bill sponsors (co-sponsors)
@@ -93,7 +95,7 @@ export async function GET(
 
     return NextResponse.json({
       bill,
-      primary_sponsor: bill.legislators || null,
+      primary_sponsor: primarySponsor,
       sponsors: sponsors || [],
       history: history || [],
       votes: votes || [],
