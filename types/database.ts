@@ -59,6 +59,39 @@ export interface Legislator {
   updated_at: string;
 }
 
+export interface LegislativeEvent {
+  id: number;
+  event_date: string;
+  start_time: string | null;
+  chamber: 'house' | 'senate' | null;
+  event_type: string;
+  description: string;
+  location: string | null;
+  committee_id: number | null;
+  is_public: boolean;
+  source_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BillHistory {
+  id: number;
+  bill_id: number;
+  action_date: string | null;
+  action: string;
+  chamber: 'house' | 'senate' | null;
+  created_at: string;
+}
+
+export interface ScrapingLog {
+  id: number;
+  source: string;
+  status: 'success' | 'error' | 'partial';
+  records_processed: number;
+  message: string | null;
+  created_at: string;
+}
+
 export interface ContactMessage {
   id: number;
   user_id: string | null;
