@@ -6,7 +6,7 @@ import type { ScrapeEvent } from '@/app/api/admin/scrape/route';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type StepId = 'committees' | 'bills' | 'actions' | 'calendar';
+type StepId = 'committees' | 'bills' | 'calendar';
 type StepStatus = 'idle' | 'running' | 'done' | 'error';
 
 interface Step {
@@ -19,10 +19,9 @@ interface Step {
 }
 
 const INITIAL_STEPS: Step[] = [
-  { id: 'committees', label: 'Committees',   icon: '🏛️', status: 'idle', message: '', count: 0 },
-  { id: 'bills',      label: 'Filed Bills',  icon: '📋', status: 'idle', message: '', count: 0 },
-  { id: 'actions',    label: 'Bill Actions', icon: '⚡', status: 'idle', message: '', count: 0 },
-  { id: 'calendar',   label: 'Calendar',     icon: '📅', status: 'idle', message: '', count: 0 },
+  { id: 'committees', label: 'Committees', icon: '🏛️', status: 'idle', message: '', count: 0 },
+  { id: 'bills',      label: 'Bills (RSS)', icon: '📋', status: 'idle', message: '', count: 0 },
+  { id: 'calendar',   label: 'Calendar',   icon: '📅', status: 'idle', message: '', count: 0 },
 ];
 
 const SQL_LINK = 'https://supabase.com/dashboard/project/bmwzjybppjneyejlsjpv/sql';
