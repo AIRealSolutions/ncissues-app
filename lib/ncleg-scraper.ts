@@ -67,7 +67,8 @@ function normalizeBillNumber(billId: string): string {
 }
 
 /** Determine chamber string for our DB from ncleg chamber value */
-function normalizeChamber(chamber: string): 'house' | 'senate' | null {
+function normalizeChamber(chamber: string | null | undefined): 'house' | 'senate' | null {
+  if (!chamber) return null;
   const c = chamber.toLowerCase();
   if (c.includes('house') || c === 'h') return 'house';
   if (c.includes('senate') || c === 's') return 'senate';
