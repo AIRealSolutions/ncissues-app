@@ -4,7 +4,9 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const district = searchParams.get('district');
-  const chamber = searchParams.get('chamber');
+  // page sends 'House' or 'Senate' — table stores lowercase
+  const chamberParam = searchParams.get('chamber');
+  const chamber = chamberParam ? chamberParam.toLowerCase() : null;
   const search = searchParams.get('search');
 
   const supabase = await createClient();
@@ -12,12 +14,12 @@ export async function GET(request: Request) {
   try {
     let query = supabase
       .from('legislators')
-      .select('*')
+      .select('id, name, party, chamber, district, email, phone, photo_url, office_address, counties, is_active')
       .eq('is_active', true)
-      .order('last_name', { ascending: true });
+      .order('name', { ascending: true });
 
     if (district) {
-      query = query.eq('district', parseInt(district));
+      query = query.eq('district', district);
     }
 
     if (chamber) {
@@ -25,7 +27,7 @@ export async function GET(request: Request) {
     }
 
     if (search) {
-      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,full_name.ilike.%${search}%`);
+      query = query.ilike('name', `%${search}%`);
     }
 
     const { data, error } = await query;
