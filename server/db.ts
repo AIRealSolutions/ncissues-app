@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, legislators, committees, type InsertLegislator, type InsertCommittee } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,112 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ============================================================================
+// Legislator DB helpers
+// ============================================================================
+
+export async function upsertLegislator(leg: InsertLegislator): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.insert(legislators).values(leg).onDuplicateKeyUpdate({
+    set: {
+      chamber: leg.chamber,
+      district: leg.district,
+      name: leg.name,
+      party: leg.party,
+      counties: leg.counties,
+      email: leg.email,
+      phone: leg.phone,
+      photoUrl: leg.photoUrl,
+      officeRoom: leg.officeRoom,
+      isActive: leg.isActive ?? true,
+      lastSynced: new Date(),
+    },
+  });
+}
+
+export async function getAllLegislators() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(legislators).where(eq(legislators.isActive, true));
+}
+
+export async function getLegislatorsByChamber(chamber: "H" | "S") {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(legislators)
+    .where(and(eq(legislators.chamber, chamber), eq(legislators.isActive, true)));
+}
+
+export async function getLegislatorByDistrict(chamber: "H" | "S", district: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db
+    .select()
+    .from(legislators)
+    .where(
+      and(
+        eq(legislators.chamber, chamber),
+        eq(legislators.district, district),
+        eq(legislators.isActive, true)
+      )
+    )
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getLegislatorCount() {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(legislators)
+    .where(eq(legislators.isActive, true));
+
+  return result[0]?.count ?? 0;
+}
+
+// ============================================================================
+// Committee DB helpers
+// ============================================================================
+
+export async function upsertCommittee(comm: InsertCommittee): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.insert(committees).values(comm).onDuplicateKeyUpdate({
+    set: {
+      chamberCode: comm.chamberCode,
+      sessionCode: comm.sessionCode,
+      name: comm.name,
+      nameWithChamber: comm.nameWithChamber,
+      docSiteId: comm.docSiteId,
+      isSelectCommittee: comm.isSelectCommittee ?? false,
+      isNonStanding: comm.isNonStanding ?? false,
+      isJointSelect: comm.isJointSelect ?? false,
+      lastSynced: new Date(),
+    },
+  });
+}
+
+export async function getAllCommittees() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(committees);
+}
+
+export async function getCommitteesByChamber(chamberCode: string) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(committees).where(eq(committees.chamberCode, chamberCode));
+}

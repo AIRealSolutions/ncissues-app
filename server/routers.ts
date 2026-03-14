@@ -2,9 +2,12 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import { lookupLegislatorsByAddress } from "./legislatorLookup";
+import { getAllLegislators, getLegislatorsByChamber, getAllCommittees, getCommitteesByChamber } from "./db";
+import { syncLegislators, syncCommittees } from "./syncData";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -17,12 +20,67 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // Find Your Legislator - core lookup feature
+  legislator: router({
+    /**
+     * Look up legislators by NC address.
+     * Geocodes the address, determines districts, and returns matching legislators.
+     */
+    lookup: publicProcedure
+      .input(
+        z.object({
+          address: z.string().min(3, "Please enter a valid address"),
+        })
+      )
+      .mutation(async ({ input }) => {
+        return lookupLegislatorsByAddress(input.address);
+      }),
+
+    /**
+     * Get all legislators, optionally filtered by chamber.
+     */
+    list: publicProcedure
+      .input(
+        z.object({
+          chamber: z.enum(["H", "S", "all"]).optional().default("all"),
+        }).optional()
+      )
+      .query(async ({ input }) => {
+        const chamber = input?.chamber ?? "all";
+        if (chamber === "all") {
+          return getAllLegislators();
+        }
+        return getLegislatorsByChamber(chamber as "H" | "S");
+      }),
+
+    /**
+     * Manually trigger a data sync from ncleg.gov.
+     */
+    sync: publicProcedure.mutation(async () => {
+      const legResult = await syncLegislators();
+      const commResult = await syncCommittees();
+      return {
+        legislators: legResult,
+        committees: commResult,
+      };
+    }),
+  }),
+
+  // Committees
+  committee: router({
+    list: publicProcedure
+      .input(
+        z.object({
+          chamber: z.string().optional(),
+        }).optional()
+      )
+      .query(async ({ input }) => {
+        if (input?.chamber) {
+          return getCommitteesByChamber(input.chamber);
+        }
+        return getAllCommittees();
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
