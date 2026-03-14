@@ -7,8 +7,11 @@ import type { Bill } from '@/types/database';
 export default function BillsPage() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [chamber, setChamber] = useState('');
   const [topic, setTopic] = useState('');
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const ITEMS_PER_PAGE = 20;
@@ -21,7 +24,7 @@ export default function BillsPage() {
     setPage(1);
     setBills([]);
     fetchBills(1, true);
-  }, [chamber, topic]);
+  }, [chamber, topic, search]);
 
   useEffect(() => {
     if (page > 1) {
@@ -59,28 +62,41 @@ export default function BillsPage() {
 
   const fetchBills = async (pageNum: number, isNewSearch: boolean) => {
     setLoading(true);
+    setError('');
     const params = new URLSearchParams();
     if (chamber) params.append('chamber', chamber);
     if (topic) params.append('topic', topic);
+    if (search) params.append('search', search);
     params.append('limit', ITEMS_PER_PAGE.toString());
     params.append('offset', ((pageNum - 1) * ITEMS_PER_PAGE).toString());
-    
+
     try {
       const response = await fetch(`/api/bills?${params}`);
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to load bills');
+        return;
+      }
       const data = await response.json();
-      
+
       if (isNewSearch) {
         setBills(data);
       } else {
         setBills(prev => [...prev, ...data]);
       }
-      
+
       setHasMore(data.length === ITEMS_PER_PAGE);
     } catch (error) {
       console.error('Error fetching bills:', error);
+      setError('Failed to load bills. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(searchInput);
   };
 
   const handleTrackBill = async (billId: number) => {
@@ -195,7 +211,31 @@ export default function BillsPage() {
 
       {/* Filters */}
       <section className="py-6 border-b">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 space-y-4">
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search bills by title or number..."
+              className="flex-1 px-4 py-2 border border-border rounded-lg bg-background"
+            />
+            <button
+              type="submit"
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+            >
+              Search
+            </button>
+            {search && (
+              <button
+                type="button"
+                onClick={() => { setSearch(''); setSearchInput(''); }}
+                className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </form>
           <div className="flex gap-4">
             <select
               value={chamber}
@@ -226,7 +266,17 @@ export default function BillsPage() {
       {/* Bills List */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          {loading ? (
+          {error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600">{error}</p>
+              <button
+                onClick={() => fetchBills(1, true)}
+                className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               <p className="mt-4 text-muted-foreground">Loading bills...</p>

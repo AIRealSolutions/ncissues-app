@@ -25,7 +25,7 @@ interface Bill {
   introduced_date?: string;
   last_action?: string;
   last_action_date?: string;
-  url?: string;
+  ncleg_url?: string;
   bill_type?: string;
   primary_sponsor?: string;
 }
@@ -468,10 +468,10 @@ export default function BillDetailPage() {
                     <p className="font-medium">{bill.last_action}</p>
                   </div>
                 )}
-                {bill.url && (
+                {bill.ncleg_url && (
                   <div className="mt-4 pt-4 border-t border-border">
                     <a
-                      href={bill.url}
+                      href={bill.ncleg_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline inline-flex items-center gap-2"
@@ -660,13 +660,13 @@ export default function BillDetailPage() {
                       </div>
                     ))}
                   </div>
-                ) : bill.url ? (
+                ) : bill.ncleg_url ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground mb-4">
                       Bill text is available on the official NC Legislature website.
                     </p>
                     <a
-                      href={bill.url}
+                      href={bill.ncleg_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
