@@ -1,19 +1,18 @@
 /**
  * Legislator Lookup Service
  *
- * Converts a North Carolina address to lat/lng using Google Maps Geocoding,
+ * Converts a North Carolina address to lat/lng using NC OneMap Geocoding,
  * then determines the NC House and Senate districts using the official
  * NC General Assembly ArcGIS Feature Services (same data source as ncleg.gov),
  * and returns matching legislators from our database.
  *
  * Strategy:
- * 1. Geocode the address using Google Maps API (via Manus proxy)
+ * 1. Geocode the address using NC OneMap ArcGIS Geocoding Service (Free/Official)
  * 2. Use the geocoded coordinates to query NCGA ArcGIS Feature Services for district boundaries
  * 3. Match districts to legislators stored in our database
  * 4. Cache results for performance
  */
 
-import { makeRequest, type GeocodingResult } from "./_core/map";
 import { getDb } from "./db";
 import { legislators, districtLookupCache } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
@@ -54,17 +53,18 @@ export interface LegislatorInfo {
 }
 
 // ============================================================================
-// ArcGIS Feature Service Configuration
+// ArcGIS Service Configuration
 // ============================================================================
 
 /**
+ * NC OneMap Geocoding Service (Official NC Address Database)
+ */
+const NCONEMAP_GEOCODE_URL =
+  "https://services.nconemap.gov/secure/rest/services/AddressNC/AddressNC_geocoder/GeocodeServer/findAddressCandidates";
+
+/**
  * These are the official NCGA ArcGIS Feature Service URLs used by ncleg.gov
- * for the "Find Your Legislators" tool. The portal item IDs are sourced from
- * the ncleg.gov FindYourLegislators page's LAYER_IDS configuration.
- *
- * Portal items resolve to these Feature Service URLs:
- * - House: 8a50635c58914c3aa60e1d578685a27a → NCGA_House_2023
- * - Senate: efdeebfe3bfe44ba90766891fd71fd90 → NCGA_Senate_2023
+ * for the "Find Your Legislators" tool.
  */
 const ARCGIS_HOUSE_URL =
   "https://services5.arcgis.com/gRcZqepTaRC6tVZL/arcgis/rest/services/NCGA_House_2023/FeatureServer/0/query";
@@ -171,7 +171,7 @@ export async function lookupLegislatorsByAddress(address: string): Promise<Legis
 }
 
 // ============================================================================
-// Geocoding
+// Geocoding (NC OneMap)
 // ============================================================================
 
 interface GeocodeAddressResult {
@@ -186,12 +186,21 @@ interface GeocodeAddressResult {
 
 async function geocodeAddress(address: string): Promise<GeocodeAddressResult> {
   try {
-    const result = await makeRequest<GeocodingResult>("/maps/api/geocode/json", {
-      address: address,
-      components: "country:US",
+    const params = new URLSearchParams({
+      SingleLine: address,
+      f: "json",
+      outSR: "4326",
+      outFields: "Subregion,Region",
+      maxLocations: "1",
     });
 
-    if (result.status !== "OK" || !result.results || result.results.length === 0) {
+    const response = await fetch(`${NCONEMAP_GEOCODE_URL}?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error(`NC OneMap API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.candidates || data.candidates.length === 0) {
       return {
         success: false,
         formatted: address,
@@ -203,22 +212,14 @@ async function geocodeAddress(address: string): Promise<GeocodeAddressResult> {
       };
     }
 
-    const firstResult = result.results[0];
-    const { lat, lng } = firstResult.geometry.location;
-    const formatted = firstResult.formatted_address;
-
-    // Check if address is in North Carolina
-    let isInNC = false;
-    let county: string | null = null;
-
-    for (const component of firstResult.address_components) {
-      if (component.types.includes("administrative_area_level_1")) {
-        isInNC = component.short_name === "NC" || component.long_name === "North Carolina";
-      }
-      if (component.types.includes("administrative_area_level_2")) {
-        county = component.long_name.replace(" County", "");
-      }
-    }
+    const candidate = data.candidates[0];
+    const { x: lng, y: lat } = candidate.location;
+    const formatted = candidate.address;
+    
+    // NC OneMap returns "NC" in Region field for NC addresses
+    const region = candidate.attributes?.Region || "";
+    const isInNC = region.toUpperCase() === "NC" || region.toUpperCase() === "NORTH CAROLINA";
+    const county = candidate.attributes?.Subregion || null;
 
     return {
       success: true,
@@ -251,14 +252,6 @@ interface DistrictResult {
   senateDistrict: number | null;
 }
 
-/**
- * Query the official NCGA ArcGIS Feature Services to determine which
- * NC House and Senate districts contain the given coordinates.
- *
- * These are the same services used by ncleg.gov's "Find Your Legislators" tool.
- * The query performs a spatial intersection: given a point (lat/lng),
- * it returns the district polygon that contains that point.
- */
 async function lookupDistrictsViaArcGIS(lat: number, lng: number): Promise<DistrictResult> {
   const params = new URLSearchParams({
     where: "1=1",
@@ -271,12 +264,10 @@ async function lookupDistrictsViaArcGIS(lat: number, lng: number): Promise<Distr
     returnGeometry: "false",
   });
 
-  // Query sequentially to avoid overwhelming the ArcGIS CDN
-  // (parallel requests from this sandbox sometimes cause connection drops)
-  const houseResult = await queryArcGISFeatureService(ARCGIS_HOUSE_URL, params, "House");
-  // Small delay between requests to avoid connection issues
-  await delay(500);
-  const senateResult = await queryArcGISFeatureService(ARCGIS_SENATE_URL, params, "Senate");
+  const [houseResult, senateResult] = await Promise.all([
+    queryArcGISFeatureService(ARCGIS_HOUSE_URL, params, "House"),
+    queryArcGISFeatureService(ARCGIS_SENATE_URL, params, "Senate"),
+  ]);
 
   return {
     houseDistrict: houseResult,
@@ -284,118 +275,40 @@ async function lookupDistrictsViaArcGIS(lat: number, lng: number): Promise<Distr
   };
 }
 
-/**
- * Query a single ArcGIS Feature Service with retry logic.
- * Returns the district number or null if the query fails.
- */
 async function queryArcGISFeatureService(
   baseUrl: string,
   params: URLSearchParams,
   label: string
 ): Promise<number | null> {
-  const url = `${baseUrl}?${params.toString()}`;
-  const maxRetries = 3;
+  try {
+    const response = await fetch(`${baseUrl}?${params.toString()}`);
+    if (!response.ok) return null;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-
-      // Use undici-compatible fetch options; the ArcGIS CDN sometimes
-      // drops HTTP/2 connections from this sandbox, so we add a
-      // cache-busting param per attempt to avoid stale connections.
-      const cacheBuster = `_cb=${Date.now()}_${attempt}`;
-      const fetchUrl = `${url}&${cacheBuster}`;
-
-      const response = await fetch(fetchUrl, {
-        signal: controller.signal,
-        headers: {
-          "Accept": "application/json",
-          "Connection": "keep-alive",
-        },
-      });
-
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        console.warn(`[ArcGIS ${label}] HTTP ${response.status} on attempt ${attempt}`);
-        if (attempt < maxRetries) {
-          await delay(2000 * attempt);
-          continue;
-        }
-        return null;
-      }
-
-      const data = await response.json();
-
-      if (data.error) {
-        console.warn(`[ArcGIS ${label}] API error:`, data.error.message);
-        if (attempt < maxRetries) {
-          await delay(2000 * attempt);
-          continue;
-        }
-        return null;
-      }
-
-      if (data.features && data.features.length > 0) {
-        const district = data.features[0].attributes?.District;
-        if (typeof district === "number") {
-          console.log(`[ArcGIS ${label}] District ${district} found on attempt ${attempt}`);
-          return district;
-        }
-      }
-
-      console.warn(`[ArcGIS ${label}] No features returned for coordinates`);
-      return null;
-    } catch (error: any) {
-      if (error.name === "AbortError") {
-        console.warn(`[ArcGIS ${label}] Request timed out on attempt ${attempt}`);
-      } else {
-        console.warn(`[ArcGIS ${label}] Error on attempt ${attempt}:`, error.message);
-      }
-      if (attempt < maxRetries) {
-        await delay(2000 * attempt);
-        continue;
-      }
-      return null;
+    const data = await response.json();
+    if (data.features && data.features.length > 0) {
+      return data.features[0].attributes.District;
     }
+  } catch (error) {
+    console.error(`[ArcGIS ${label}] Error:`, error);
   }
-
   return null;
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 // ============================================================================
-// Database Operations
+// Database Helpers
 // ============================================================================
 
 async function getCachedLookup(addressHash: string) {
   const db = await getDb();
   if (!db) return null;
 
-  try {
-    const result = await db
-      .select()
-      .from(districtLookupCache)
-      .where(eq(districtLookupCache.addressHash, addressHash))
-      .limit(1);
+  const results = await db
+    .select()
+    .from(districtLookupCache)
+    .where(eq(districtLookupCache.addressHash, addressHash))
+    .limit(1);
 
-    if (result.length > 0) {
-      // Check if cache is less than 30 days old
-      const cacheAge = Date.now() - result[0].createdAt.getTime();
-      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-      if (cacheAge < thirtyDays) {
-        return result[0];
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error("[Cache] Error reading cache:", error);
-    return null;
-  }
+  return results.length > 0 ? results[0] : null;
 }
 
 async function cacheDistrictLookup(
@@ -403,8 +316,8 @@ async function cacheDistrictLookup(
   normalizedAddress: string,
   lat: number,
   lng: number,
-  ncHouseDistrict: number | null,
-  ncSenateDistrict: number | null,
+  houseDistrict: number | null,
+  senateDistrict: number | null,
   county: string | null
 ) {
   const db = await getDb();
@@ -416,21 +329,12 @@ async function cacheDistrictLookup(
       normalizedAddress,
       latitude: String(lat),
       longitude: String(lng),
-      ncHouseDistrict,
-      ncSenateDistrict,
+      ncHouseDistrict: houseDistrict,
+      ncSenateDistrict: senateDistrict,
       county,
-    }).onDuplicateKeyUpdate({
-      set: {
-        normalizedAddress,
-        latitude: String(lat),
-        longitude: String(lng),
-        ncHouseDistrict,
-        ncSenateDistrict,
-        county,
-      },
     });
   } catch (error) {
-    console.error("[Cache] Error writing cache:", error);
+    console.error("[Database] Failed to cache lookup:", error);
   }
 }
 
@@ -438,38 +342,21 @@ async function findLegislatorByDistrict(chamber: "H" | "S", district: number): P
   const db = await getDb();
   if (!db) return null;
 
-  try {
-    const result = await db
-      .select()
-      .from(legislators)
-      .where(
-        and(
-          eq(legislators.chamber, chamber),
-          eq(legislators.district, district),
-          eq(legislators.isActive, true)
-        )
+  const results = await db
+    .select()
+    .from(legislators)
+    .where(
+      and(
+        eq(legislators.chamber, chamber),
+        eq(legislators.district, district),
+        eq(legislators.isActive, true)
       )
-      .limit(1);
+    )
+    .limit(1);
 
-    if (result.length > 0) {
-      const leg = result[0];
-      return {
-        id: leg.id,
-        memberId: leg.memberId,
-        chamber: leg.chamber,
-        district: leg.district,
-        name: leg.name,
-        party: leg.party,
-        counties: leg.counties,
-        email: leg.email,
-        phone: leg.phone,
-        photoUrl: leg.photoUrl,
-        officeRoom: leg.officeRoom,
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error("[Legislator Lookup] Error:", error);
-    return null;
-  }
+  return results.length > 0 ? (results[0] as LegislatorInfo) : null;
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
