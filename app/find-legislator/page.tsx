@@ -13,7 +13,6 @@ interface Legislator {
   phone: string | null;
   photo_url: string | null;
   office_address: string | null;
-  counties: string | null;
 }
 
 export default function FindLegislatorPage() {
@@ -214,10 +213,7 @@ export default function FindLegislatorPage() {
                                 <p className="text-gray-600">
                                   {getChamberLabel(leg.chamber)} · District {leg.district}
                                 </p>
-                                {leg.counties && (
-                                  <p className="text-sm text-gray-500 mt-0.5">{leg.counties}</p>
-                                )}
-                              </div>
+                                              </div>
                               <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPartyBadge(leg.party)}`}>
                                 {getPartyLabel(leg.party)}
                               </span>

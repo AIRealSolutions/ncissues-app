@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   try {
     let query = supabase
       .from('legislators')
-      .select('id, name, party, chamber, district, email, phone, photo_url, office_address, counties, is_active')
+      .select('id, name, party, chamber, district, email, phone, photo_url, office_address, is_active')
       .eq('is_active', true)
       .order('name', { ascending: true });
 
